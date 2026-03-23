@@ -1,0 +1,69 @@
+version: '3.8' # Khai báo phiên bản compose
+
+services:
+  server:
+    build:
+      context: ./server
+    container_name: chat_server
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/chat_app_db
+      - JWT_SECRET=my_super_secret_key_for_jwt
+      - ORACLE_USER=chatapp
+      - ORACLE_PASSWORD=chatapp
+      - ORACLE_CONNECT_STRING=oracle:1521/FREEPDB1
+    depends_on:
+      - mongodb
+      - oracle
+      - redis
+    networks:
+      - chat_network
+    restart: always
+
+  mongodb:
+    image: mongo:latest
+    container_name: chat_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chat_network # Gắn vào mạng chung
+    restart: always
+
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: chat_oracle
+    ports:
+      - "1521:1521"
+    environment:
+      - ORACLE_PASSWORD=oracle
+      - APP_USER=chatapp
+      - APP_USER_PASSWORD=chatapp
+      - ORACLE_DATABASE=FREEPDB1
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+      - ./server/db/oracle:/container-entrypoint-initdb.d
+    networks:
+      - chat_network
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: chat_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - chat_network # Gắn vào mạng chung
+    restart: always
+
+volumes:
+  mongo_data:
+  oracle_data:
+
+# Định nghĩa mạng nội bộ cho các container giao tiếp với nhau
+networks:
+  chat_network:
+    driver: bridge
