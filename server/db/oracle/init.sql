@@ -92,6 +92,7 @@ END;
 /
 
 -- Conversations and members
+-- Conversations
 BEGIN
   EXECUTE IMMEDIATE q'[
     CREATE TABLE conversations (
@@ -99,9 +100,13 @@ BEGIN
       type VARCHAR2(10) NOT NULL,
       name VARCHAR2(200),
       avatar_url VARCHAR2(500),
+      -- Thêm cột last_message lưu trữ chuỗi JSON
+      last_message VARCHAR2(4000),
       created_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
       updated_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
-      CONSTRAINT ck_conversations_type CHECK (type IN ('private','group'))
+      CONSTRAINT ck_conversations_type CHECK (type IN ('private','group')),
+      -- Đảm bảo dữ liệu đưa vào phải đúng chuẩn JSON (Hỗ trợ Oracle 12c trở lên)
+      CONSTRAINT ck_conversations_last_msg CHECK (last_message IS JSON)
     )
   ]';
 EXCEPTION
@@ -109,7 +114,6 @@ EXCEPTION
     IF SQLCODE != -955 THEN RAISE; END IF;
 END;
 /
-
 BEGIN
   EXECUTE IMMEDIATE q'[
     CREATE TABLE conversation_members (
